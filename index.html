@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IoT Temperature Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🌡 IoT Temperature & Humidity Dashboard</h1>
+    <div id="alertBox" class="hidden">⚠️ High Temperature Alert!</div>
+    <div class="card">
+      <p>Temperature: <span id="temp">--</span> °C</p>
+      <p>Humidity: <span id="humidity">--</span> %</p>
+      <p>Time: <span id="time">--</span></p>
+    </div>
+    <button onclick="fetchData()">Show Temperature</button>
+  </div>
+
+  <script>
+    // Ask for browser notification permission on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+      fetchData();
+      setInterval(fetchData, 5000);
+    });
+  
+    let lastAlertTime = null;
+  
+    async function fetchData() {
+      const res = await fetch('/api/latest');
+      const data = await res.json();
+  
+      document.getElementById('temp').innerText = data.temperature;
+      document.getElementById('humidity').innerText = data.humidity;
+      document.getElementById('time').innerText = new Date(data.timestamp).toLocaleString();
+  
+      const alertBox = document.getElementById('alertBox');
+      if (data.alert) {
+        alertBox.classList.remove('hidden');
+  
+        // Send browser notification if enough time has passed since last alert
+        if (Notification.permission === "granted" && shouldNotify()) {
+          new Notification("🔥 High Temperature Alert!", {
+            body: `Current temperature: ${data.temperature}°C`,
+            icon: "https://cdn-icons-png.flaticon.com/512/481/481435.png", // optional
+          });
+  
+          lastAlertTime = Date.now();
+        }
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+  
+    // Optional: throttle notifications to avoid spam (e.g., once per 30 sec)
+    function shouldNotify() {
+      if (!lastAlertTime) return true;
+      return (Date.now() - lastAlertTime > 30000); // 30 seconds
+    }
+
+
+  </script>
+  
+  
+</body>
+</html>
